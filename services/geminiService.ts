@@ -4,6 +4,8 @@ import { AnalysisReport, GenerationConfig, AdvancedSettings, VisualStyle, Typogr
 
 /**
  * Helper to initialize AI with custom settings
+ * SECURITY NOTE: This function explicitly requires a user-provided API key.
+ * It will NOT fallback to process.env or any other source to prevent leaks in shared environments.
  */
 const initAI = (apiKey: string, baseUrl: string) => {
   const key = apiKey ? apiKey.trim() : "";
@@ -39,7 +41,6 @@ export const validateApiKey = async (apiKey: string, baseUrl: string): Promise<b
 
 /**
  * Step 1: Analyze the product image(s) using Vision model
- * UPDATED: Added "Role" classification to image tags.
  */
 export const analyzeProductImage = async (
   apiKey: string, 
@@ -328,7 +329,8 @@ export const generatePosterImage = async (
   settings: AdvancedSettings,
   aspectRatio: string = "9:16",
   referenceImageBase64s: string[] = [], 
-  logoImageBase64?: string | null
+  logoImageBase64?: string | null,
+  modelRefImageBase64?: string | null
 ): Promise<string> => {
   const ai = initAI(apiKey, settings.baseUrl);
 
@@ -358,18 +360,28 @@ export const generatePosterImage = async (
     return { mimeType, data: cleanBase64 };
   };
 
-  // Add all reference images
+  // 1. Add all product reference images
   referenceImageBase64s.forEach((b64) => {
       parts.push({ inlineData: getInlineData(b64) });
   });
 
-  // Add logo if exists
+  // 2. Add logo if exists
   if (logoImageBase64) {
       parts.push({ inlineData: getInlineData(logoImageBase64) });
   }
 
+  // 3. Add model ref if exists
+  let modelRefIndex = -1;
+  if (modelRefImageBase64) {
+      parts.push({ inlineData: getInlineData(modelRefImageBase64) });
+      // Calculate index: refs + logo(if any) + 1 (since indices are 1-based in prompt)
+      modelRefIndex = referenceImageBase64s.length + (logoImageBase64 ? 1 : 0) + 1;
+  }
+
   // Construct Final Prompt with DYNAMIC SUBJECT LOCKING
   let finalPrompt = prompt;
+  
+  // Instructions for Reference Images
   if (referenceImageBase64s.length > 0) {
       let refDesc = "";
       referenceImageBase64s.forEach((_, idx) => {
@@ -380,9 +392,6 @@ export const generatePosterImage = async (
       const logoIndex = referenceImageBase64s.length + 1;
 
       // --- DYNAMIC CONSISTENCY PROMPT ---
-      // Instead of forcing "Image 1 is the product", we act more generic:
-      // "Use the provided reference images as the GROUND TRUTH."
-      // This allows [Image 6] (Paste) to be the ground truth if it's the only one passed.
       finalPrompt = `
       ${refDesc}
       ${logoImageBase64 ? `[IMAGE ${logoIndex}] is the BRAND LOGO.` : ''}
@@ -397,6 +406,17 @@ export const generatePosterImage = async (
       ${prompt}
 
       ${logoImageBase64 ? `Composite LOGO from [IMAGE ${logoIndex}] in a suitable position.` : ''}
+      `;
+  }
+
+  // Instructions for Model Consistency
+  if (modelRefImageBase64 && modelRefIndex > -1) {
+      finalPrompt += `
+      
+      🔴 **MANDATORY INSTRUCTION: HUMAN IDENTITY CONSISTENCY**
+      [IMAGE ${modelRefIndex}] is the REFERENCE FACE for the human model.
+      - Any human figures generated in this image MUST share the SAME facial features, age, ethnicity, and general appearance as the person in [IMAGE ${modelRefIndex}].
+      - Prioritize facial resemblance to [IMAGE ${modelRefIndex}] above all other character descriptions.
       `;
   }
 

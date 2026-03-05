@@ -40,7 +40,8 @@ const App: React.FC = () => {
 
   // Settings & Config
   const [advancedSettings, setAdvancedSettings] = useState<AdvancedSettings>({
-    apiKey: '',
+    // SECURITY FIX: Explicitly set to empty string. Do NOT use process.env here.
+    apiKey: '', 
     textModel: 'gemini-3-pro-preview', // Default strict
     imageModel: 'gemini-3-pro-image-preview', // Default strict
     imageSize: '2K',
@@ -194,6 +195,7 @@ const App: React.FC = () => {
 
     setAdvancedSettings(prev => ({
         ...prev,
+        apiKey: '', // SECURITY FIX: Reset to empty, never use env var
         textModel: 'gemini-3-pro-preview',
         imageModel: 'gemini-3-pro-image-preview',
         imageSize: '2K',

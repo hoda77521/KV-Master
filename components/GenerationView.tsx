@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Image as ImageIcon, Download, Sparkles, Loader2, Copy, Check, Zap, FileText, PenLine, Send, Maximize2, RotateCw, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ZoomIn, ZoomOut, MousePointerClick, Settings2, GripHorizontal } from 'lucide-react';
+import { Image as ImageIcon, Download, Sparkles, Loader2, Copy, Zap, FileText, PenLine, Send, Maximize2, RotateCw, X, ChevronLeft, Check, ChevronDown, ChevronUp, ZoomIn, ZoomOut, Settings2 } from 'lucide-react';
 import { ParsedPoster, AdvancedSettings, GenerationConfig, ManualProductInfo } from '../types';
 import { generatePosterImage } from '../services/geminiService';
 
@@ -141,13 +141,17 @@ export const GenerationView: React.FC<GenerationViewProps> = ({
             return `[IMAGE ${mappedIndex}]`;
         });
 
+        // Determine if model consistency is active and image exists
+        const modelRef = manualInfo?.isModelConsistent ? manualInfo?.modelRefImage : null;
+
         const base64Image = await generatePosterImage(
             apiKey, 
             adjustedPrompt, // Use adjusted prompt
             settings, 
             config.aspectRatio,
             refImages, 
-            manualInfo?.logoBase64
+            manualInfo?.logoBase64,
+            modelRef
         );
 
         setParsedPosters(prev => prev.map(p => 
@@ -640,28 +644,21 @@ export const GenerationView: React.FC<GenerationViewProps> = ({
              </button>
 
              {/* Image Area */}
-             <div className="flex-1 flex items-center justify-center p-4 md:p-12 overflow-hidden" onClick={closeFullscreen}>
+             <div 
+                 className="flex-1 overflow-hidden flex items-center justify-center p-4 relative z-10"
+                 onClick={closeFullscreen}
+             >
                  <img 
                     src={viewingPoster.generatedImage} 
                     alt={viewingPoster.title} 
-                    className="max-h-full max-w-full object-contain shadow-2xl rounded-lg"
-                    style={{ transform: `scale(${zoomLevel})`, transition: 'transform 0.2s ease-out' }}
-                    onClick={(e) => { e.stopPropagation(); setZoomLevel(z => z === 1 ? 2 : 1); }}
+                    className="max-w-full max-h-full object-contain shadow-2xl rounded-lg transition-transform duration-200"
+                    style={{ transform: `scale(${zoomLevel})` }}
+                    onClick={(e) => e.stopPropagation()}
                  />
              </div>
-
-             {/* Navigation - Right */}
-             <button onClick={() => navigateImage('next')} className="absolute right-4 top-1/2 -translate-y-1/2 p-4 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all z-20 hidden md:block">
-                 <ChevronRight className="w-8 h-8" />
-             </button>
-             
-             {/* Bottom Info */}
-             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
-                 ESC to close • Arrows to navigate • Click / +/- to zoom
-             </div>
-         </div>,
-         document.body
-      )}
+          </div>,
+          document.body
+       )}
 
     </div>
   );
