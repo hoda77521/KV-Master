@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { ImageIcon, CloudUpload, ImagePlus, Trash2, PackagePlus, Star, Crown, GripHorizontal } from 'lucide-react';
+import { ImageIcon, CloudUpload, ImagePlus, Trash2, PackagePlus, Star, Crown, GripHorizontal, UserCheck, User } from 'lucide-react';
 import { ManualProductInfo } from '../types';
 
 interface UploadSectionProps {
@@ -24,6 +24,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputId = "logo-upload-input-unique-id";
+  const modelInputId = "model-upload-input-unique-id";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -170,6 +171,34 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
     setManualInfo(prev => ({ ...prev, logoBase64: null }));
   };
 
+  // --- Model Ref Handlers ---
+  const handleModelRefChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        alert("图片文件过大，Max 5MB");
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        if (event.target?.result) {
+            setManualInfo(prev => ({ ...prev, modelRefImage: event.target!.result as string }));
+        }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const removeModelRef = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setManualInfo(prev => ({ ...prev, modelRefImage: null }));
+  };
+
+  const toggleModelConsistency = () => {
+      setManualInfo(prev => ({ ...prev, isModelConsistent: !prev.isModelConsistent }));
+  };
+
   return (
     <div className="space-y-6">
       
@@ -261,6 +290,65 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 </div>
             )}
         </div>
+      </div>
+
+      {/* NEW: Model Consistency Toggle */}
+      <div className="space-y-3">
+          <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                   <UserCheck className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                   <span className="text-xs font-bold text-slate-700 dark:text-slate-200">是否固定模特样貌</span>
+              </div>
+              
+              <button 
+                  onClick={toggleModelConsistency}
+                  className={`w-9 h-5 rounded-full p-1 transition-colors duration-300 relative ${manualInfo.isModelConsistent ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+              >
+                  <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform duration-300 ${manualInfo.isModelConsistent ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+          </div>
+
+          {manualInfo.isModelConsistent && (
+              <div className="animate-in slide-in-from-top-2 fade-in duration-200">
+                  <div className="relative h-16 group">
+                      <input 
+                          id={modelInputId}
+                          type="file" 
+                          onChange={handleModelRefChange}
+                          accept="image/*"
+                          className="hidden" 
+                      />
+                      <label 
+                          htmlFor={modelInputId}
+                          className={`w-full h-full border border-dashed rounded-lg flex items-center justify-center transition-all cursor-pointer overflow-hidden relative
+                              ${manualInfo.modelRefImage 
+                                  ? 'border-indigo-500 bg-white dark:bg-slate-800' 
+                                  : 'border-slate-300 dark:border-slate-600 hover:border-indigo-400 bg-slate-50/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800'
+                              }
+                          `}
+                      >
+                          {manualInfo.modelRefImage ? (
+                              <div className="relative w-full h-full p-2 flex items-center justify-center">
+                                      {/* Checkerboard */}
+                                      <div className="absolute inset-1 rounded bg-[repeating-conic-gradient(#e2e8f0_0%_25%,#fff_0%_50%)] dark:bg-[repeating-conic-gradient(#334155_0%_25%,#1e293b_0%_50%)] [background-size:8px_8px] opacity-30 z-0"></div>
+                                      <img src={manualInfo.modelRefImage} alt="Model Ref" className="relative z-10 max-w-full max-h-full object-contain rounded" />
+                                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20 rounded-lg">
+                                          <button onClick={removeModelRef} className="text-white hover:text-red-400 p-1 bg-slate-800/50 rounded-full"><Trash2 className="w-4 h-4" /></button>
+                                      </div>
+                              </div>
+                          ) : (
+                              <div className="flex items-center gap-2 text-slate-400">
+                                  <User className="w-4 h-4" />
+                                  <div className="flex flex-col text-left">
+                                     <span className="text-xs font-medium">上传人物样貌参考图</span>
+                                     <span className="text-[9px] opacity-70">生成结果将复刻此外貌五官</span>
+                                  </div>
+                              </div>
+                          )}
+                      </label>
+                  </div>
+              </div>
+          )}
       </div>
 
       {/* 2. Supplementary Info (Manual Info + Logo) */}

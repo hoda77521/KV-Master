@@ -95,6 +95,8 @@ export interface ManualProductInfo {
   name: string;
   description: string;
   logoBase64: string | null;
+  isModelConsistent?: boolean;
+  modelRefImage?: string | null;
 }
 
 export interface LayoutData {
