@@ -4,9 +4,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const isGitHubPages = process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_REPOSITORY === 'HuYbio9566/Tap-kv';
     return {
-      base: isGitHubPages ? '/Tap-kv/' : '/',
+      base: './',
       server: {
         port: 3000,
         host: '0.0.0.0',
