@@ -2,6 +2,29 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisReport, GenerationConfig, AdvancedSettings, VisualStyle, TypographyStyle, ManualProductInfo } from "../types";
 
+const DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+const resolveBaseUrl = (baseUrl?: string): string => {
+  const candidate = (baseUrl || DEFAULT_GEMINI_BASE_URL).trim();
+
+  try {
+    const url = new URL(candidate);
+    const isLocal = LOCAL_HOSTS.has(url.hostname);
+
+    if (url.protocol !== "https:" && !isLocal) {
+      throw new Error("API Base URL 必须使用 HTTPS。只有 localhost / 127.0.0.1 允许使用 HTTP 调试。");
+    }
+
+    return url.toString().replace(/\/$/, "");
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("API Base URL")) {
+      throw error;
+    }
+    throw new Error("API Base URL 格式不正确，请填写完整的 HTTPS 地址。");
+  }
+};
+
 /**
  * Helper to initialize AI with custom settings
  * SECURITY NOTE: This function explicitly requires a user-provided API key.
@@ -13,7 +36,9 @@ const initAI = (apiKey: string, baseUrl: string) => {
   
   return new GoogleGenAI({ 
     apiKey: key, 
-    baseUrl: baseUrl || "https://generativelanguage.googleapis.com" 
+    httpOptions: {
+      baseUrl: resolveBaseUrl(baseUrl),
+    },
   });
 };
 
@@ -25,7 +50,9 @@ export const validateApiKey = async (apiKey: string, baseUrl: string): Promise<b
   try {
     const ai = new GoogleGenAI({ 
         apiKey: apiKey, 
-        baseUrl: baseUrl || "https://generativelanguage.googleapis.com" 
+        httpOptions: {
+          baseUrl: resolveBaseUrl(baseUrl),
+        },
     });
     await ai.models.generateContent({
         model: 'gemini-2.5-flash-image', 
