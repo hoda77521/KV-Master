@@ -63,8 +63,9 @@ export const ResultView: React.FC<ResultViewProps> = ({ markdown }) => {
                 h1: ({node, ...props}) => <h1 className="text-3xl font-bold text-indigo-900 border-b pb-4 mb-6" {...props} />,
                 h2: ({node, ...props}) => <h2 className="text-2xl font-bold text-slate-800 mt-8 mb-4 flex items-center before:content-[''] before:w-1 before:h-8 before:bg-indigo-500 before:mr-3 before:rounded" {...props} />,
                 h3: ({node, ...props}) => <h3 className="text-xl font-semibold text-slate-700 mt-6 mb-3" {...props} />,
-                code: ({node, inline, className, children, ...props}) => {
-                    return !inline ? (
+                code: ({node, className, children, ...props}) => {
+                    const isBlock = Boolean(className) || String(children).includes('\n');
+                    return isBlock ? (
                       <div className="bg-slate-900 text-slate-200 p-4 rounded-lg my-4 overflow-x-auto text-sm font-mono shadow-inner border border-slate-700">
                         <code className={className} {...props}>{children}</code>
                       </div>

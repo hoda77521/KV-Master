@@ -19,7 +19,9 @@ const App: React.FC = () => {
   
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    () => typeof window === 'undefined' || window.innerWidth >= 768
+  );
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   
   // API Key UI States
@@ -270,10 +272,18 @@ const App: React.FC = () => {
   const isReadyToGenerate = imagesBase64.length > 0 && hasManualKey;
 
   return (
-    <div className="h-screen w-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex overflow-hidden font-sans transition-colors duration-300">
+    <div className="h-[100dvh] w-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex overflow-hidden font-sans transition-colors duration-300">
+      {isSidebarOpen && (
+        <button
+          type="button"
+          aria-label="关闭配置面板"
+          onClick={() => setIsSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-950/35 backdrop-blur-[1px] md:hidden"
+        />
+      )}
       
       {/* === LEFT SIDEBAR: CONTROLS === */}
-      <aside className={`${isSidebarOpen ? 'w-[420px] translate-x-0' : 'w-0 -translate-x-full opacity-0'} bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col z-20 shadow-xl shrink-0 h-full transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap`}>
+      <aside className={`${isSidebarOpen ? 'w-[min(420px,calc(100vw-24px))] translate-x-0' : 'w-[min(420px,calc(100vw-24px))] -translate-x-full md:w-0 md:opacity-0'} fixed inset-y-0 left-0 md:relative z-40 md:z-20 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shadow-xl shrink-0 h-full transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap`}>
          
          {/* 1. Header */}
          <div className="h-16 px-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0 bg-white dark:bg-slate-800">
@@ -282,8 +292,8 @@ const App: React.FC = () => {
                   <Command className="w-5 h-5" />
                 </div>
                 <div>
-                    <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">KV Master</h1>
-                    <p className="text-[10px] text-slate-400 font-medium">视觉全案生成系统</p>
+                    <h1 className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">Tap KV</h1>
+                    <p className="text-[10px] text-slate-400 font-medium">AI 电商视觉工作台</p>
                 </div>
             </div>
             
@@ -291,6 +301,7 @@ const App: React.FC = () => {
                 {(keyValidationStatus === 'valid') && <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-full border border-emerald-100 dark:border-emerald-800 flex items-center gap-1 animate-in fade-in zoom-in duration-300"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> API 已激活</span>}
                 <button 
                     onClick={() => setIsSidebarOpen(false)}
+                    aria-label="收起配置面板"
                     className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                 >
                     <PanelLeftClose className="w-4 h-4" />
@@ -390,7 +401,7 @@ const App: React.FC = () => {
                             <div className="min-h-[16px] pt-1.5">
                                 {keyValidationStatus === 'valid' && <span className="text-[10px] text-emerald-500 font-medium flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Key 有效</span>}
                                 {keyValidationStatus === 'invalid' && <span className="text-[10px] text-red-500 font-medium flex items-center gap-1"><XCircle className="w-3 h-3" /> Key 无效或过期</span>}
-                                {keyValidationStatus === 'idle' && !advancedSettings.apiKey && <span className="text-[10px] text-slate-400">请输入您的私有 Key</span>}
+                                {keyValidationStatus === 'idle' && !advancedSettings.apiKey && <span className="text-[10px] text-slate-400">Key 仅保存在当前页面内存，不会写入构建产物或浏览器存储。</span>}
                             </div>
                         </div>
                         
@@ -476,7 +487,9 @@ const App: React.FC = () => {
                                                 className="w-full px-3 py-2.5 text-xs border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 outline-none focus:border-indigo-500 transition-all text-slate-700 dark:text-slate-200 font-mono"
                                             />
                                         </div>
-                                        <p className="text-[10px] text-slate-400 mt-1 ml-1 leading-tight">* 用于国内网络环境反代，默认请保持官方地址</p>
+                                        <p className="text-[10px] text-slate-400 mt-1 ml-1 leading-tight whitespace-normal">
+                                            默认官方地址。自定义代理会接收您的 API Key，请只使用可信 HTTPS 地址。
+                                        </p>
                                     </div>
 
                                 </div>
@@ -540,12 +553,13 @@ const App: React.FC = () => {
       <main className="flex-1 bg-slate-50/50 dark:bg-slate-900 relative flex flex-col min-w-0 transition-colors">
           
            {/* Header Tabs & Actions */}
-           <div className="h-16 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-8 flex items-center justify-between sticky top-0 z-10 transition-colors">
-                <div className="flex items-center gap-8 h-full">
+           <div className="h-16 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 sm:px-8 flex items-center justify-between sticky top-0 z-10 transition-colors gap-2">
+                <div className="flex items-center gap-1 sm:gap-8 h-full min-w-0 overflow-x-auto">
                     {!isSidebarOpen && (
                         <button 
                            onClick={() => setIsSidebarOpen(true)}
-                           className="text-slate-400 hover:text-indigo-600 transition-colors -mr-4 animate-in fade-in zoom-in duration-200"
+                           aria-label="展开配置面板"
+                           className="p-2 text-slate-400 hover:text-indigo-600 transition-colors sm:-mr-4 animate-in fade-in zoom-in duration-200"
                            title="展开侧边栏"
                         >
                             <PanelLeftOpen className="w-5 h-5" />
@@ -558,8 +572,10 @@ const App: React.FC = () => {
                            ? 'border-indigo-600 text-indigo-800 dark:text-indigo-400' 
                            : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                        }`}
+                       aria-label="KV 视觉系统"
+                       title="KV 视觉系统"
                     >
-                       <Layers className="w-4 h-4" /> KV 视觉系统
+                       <Layers className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline whitespace-nowrap">KV 视觉系统</span>
                     </button>
                     <button 
                        onClick={() => setActiveWorkspaceTab('analysis')}
@@ -568,8 +584,10 @@ const App: React.FC = () => {
                            ? 'border-indigo-600 text-indigo-800 dark:text-indigo-400' 
                            : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                        }`}
+                       aria-label="识别报告"
+                       title="识别报告"
                     >
-                       <ScanEye className="w-4 h-4" /> 识别报告
+                       <ScanEye className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline whitespace-nowrap">识别报告</span>
                     </button>
                     <button 
                        onClick={() => setActiveWorkspaceTab('detail')}
@@ -578,22 +596,26 @@ const App: React.FC = () => {
                            ? 'border-indigo-600 text-indigo-800 dark:text-indigo-400' 
                            : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'
                        }`}
+                       aria-label="详情页拼图"
+                       title="详情页拼图"
                     >
-                       <ImageIcon className="w-4 h-4" /> 详情页拼图
+                       <ImageIcon className="w-4 h-4 shrink-0" /> <span className="hidden sm:inline whitespace-nowrap">详情页拼图</span>
                     </button>
                 </div>
 
                 {/* --- RIGHT: ACTIONS (Reset & Dark Mode) --- */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     <button 
                        onClick={() => setShowResetConfirm(true)}
-                       className="group flex items-center gap-2 px-4 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-full transition-all active:scale-95 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/40"
+                       aria-label="重置系统"
+                       className="group flex items-center gap-2 p-2 sm:px-4 sm:py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-full transition-all active:scale-95 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/40"
                     >
                         <RotateCcw className="w-3.5 h-3.5 group-hover:-rotate-180 transition-transform duration-500" />
-                        <span className="text-xs font-bold">重置系统</span>
+                        <span className="hidden sm:inline text-xs font-bold">重置系统</span>
                     </button>
                     <button 
                        onClick={() => setDarkMode(!darkMode)}
+                       aria-label={darkMode ? '切换到浅色模式' : '切换到深色模式'}
                        className="w-9 h-9 flex items-center justify-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 transition-all dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-indigo-400"
                     >
                         {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -602,21 +624,21 @@ const App: React.FC = () => {
            </div>
 
            {/* Content */}
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-8 scroll-smooth" ref={topRef}>
+           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 scroll-smooth" ref={topRef}>
                 <div className={`mx-auto min-h-[calc(100vh-8rem)] ${activeWorkspaceTab === 'detail' ? 'w-full' : 'max-w-7xl'}`}>
                     
                     {/* --- TAB: GENERATION --- */}
                     {activeWorkspaceTab === 'generation' && (
                         <div className="animate-fade-in">
                             {!generatedPrompts && status !== 'generating' ? (
-                                <div className="flex flex-col items-center justify-center h-[600px] text-center">
+                                <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-7rem)] sm:h-[600px] text-center px-4">
                                     <div className="w-24 h-24 bg-white dark:bg-slate-800 rounded-[2rem] shadow-xl shadow-indigo-100 dark:shadow-none border border-white dark:border-slate-700 flex items-center justify-center mb-8 relative">
                                         <Sparkles className="w-12 h-12 text-indigo-500 relative z-10" />
                                         <div className="absolute inset-0 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] transform rotate-6 z-0"></div>
                                         <div className="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg">AI</div>
                                     </div>
                                     <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">一键电商视觉 KV 系统</h2>
-                                    <p className="text-base text-slate-500 dark:text-slate-400 mb-12">上传产品图片，AI 将自动分析品牌基因并生成全套视觉方案</p>
+                                    <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mb-10 sm:mb-12 max-w-xl">上传产品图片，AI 将自动分析品牌基因并生成全套视觉方案</p>
                                     
                                     <div className="flex items-center gap-4 text-xs font-medium text-slate-400">
                                         <div className="flex flex-col items-center gap-2">
